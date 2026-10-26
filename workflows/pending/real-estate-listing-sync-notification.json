@@ -1,0 +1,137 @@
+{
+  "name": "Real Estate Listing Sync & Notification",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ],
+      "parameters": {
+        "cronExpression": "0 */1 * * * *"
+      }
+    },
+    {
+      "id": "2",
+      "name": "Google Sheets Read",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [
+        300,
+        100
+      ],
+      "parameters": {
+        "operation": "read",
+        "sheetId": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upks",
+        "range": "A:F"
+      }
+    },
+    {
+      "id": "3",
+      "name": "Set Transform",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        500,
+        100
+      ],
+      "parameters": {
+        "values": {
+          "object": [
+            {
+              "name": {
+                "value": "{{$json[\"Name\"]}}",
+                "type": "string"
+              },
+              "price": {
+                "value": "{{$json[\"Price\"] * 1.1}}",
+                "type": "number"
+              },
+              "status": {
+                "value": "validated"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "4",
+      "name": "Google Sheets Write",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [
+        700,
+        100
+      ],
+      "parameters": {
+        "operation": "append",
+        "sheetId": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upks",
+        "range": "A:F"
+      }
+    },
+    {
+      "id": "5",
+      "name": "Slack Notify",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        900,
+        100
+      ],
+      "parameters": {
+        "channel": "#real-estate-automation",
+        "text": "✅ Real estate listing sync completed successfully."
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Read": {
+      "main": [
+        [
+          {
+            "node": "Set Transform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Transform": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets Write",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Write": {
+      "main": [
+        [
+          {
+            "node": "Slack Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
