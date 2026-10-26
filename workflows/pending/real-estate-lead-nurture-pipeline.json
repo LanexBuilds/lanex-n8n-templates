@@ -1,0 +1,138 @@
+{
+  "name": "Real Estate Lead Nurture Pipeline",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Schedule Trigger - Daily Lead Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ],
+      "parameters": {
+        "cronExpression": "0 9 * * 1-5"
+      }
+    },
+    {
+      "id": "2",
+      "name": "Google Sheets - Read Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [
+        300,
+        100
+      ],
+      "parameters": {
+        "resource": "spreadsheet",
+        "operation": "read",
+        "spreadsheetId": "1BxiMVs0XRA5QMQLsbvK7gQh7fdQGA84K",
+        "range": "Leads!A2:E"
+      }
+    },
+    {
+      "id": "3",
+      "name": "Set - Enrich Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        500,
+        100
+      ],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": [
+          {
+            "name": "fullName",
+            "value": "={{$json[\"First Name\"] + \" \" + $json[\"Last Name\"]}}"
+          },
+          {
+            "name": "leadStatus",
+            "value": "qualified"
+          }
+        ]
+      }
+    },
+    {
+      "id": "4",
+      "name": "If - Qualify Lead Score",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        700,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json[\"Lead Score\"]}}",
+              "operation": "greaterThan",
+              "value2": 80
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "5",
+      "name": "Slack - Notify Agent",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        900,
+        100
+      ],
+      "parameters": {
+        "channel": "#real-estate-leads",
+        "text": "🚀 New qualified lead: {{ $json.fullName }} (Score: {{ $json[\"Lead Score\"] }})"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger - Daily Lead Check": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Read Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Read Leads": {
+      "main": [
+        [
+          {
+            "node": "Set - Enrich Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Enrich Lead Data": {
+      "main": [
+        [
+          {
+            "node": "If - Qualify Lead Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Qualify Lead Score": {
+      "main": [
+        [
+          {
+            "node": "Slack - Notify Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
