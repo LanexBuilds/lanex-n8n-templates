@@ -1,0 +1,122 @@
+{
+  "name": "Morning Course Digest for Coaches",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        200
+      ],
+      "parameters": {
+        "cronExpression": "0 8 * * *"
+      }
+    },
+    {
+      "id": "2",
+      "name": "Fetch RSS Feed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        500,
+        200
+      ],
+      "parameters": {
+        "url": "https://examplecoach.com/rss",
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "3",
+      "name": "Split RSS Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        750,
+        200
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "4",
+      "name": "Summarize Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        200
+      ],
+      "parameters": {
+        "functionCode": "// Simulate summarization\\nconst item = $json[0];\\nreturn [{ json: { title: item.title, summary: 'Summary of: ' + item.title } }];"
+      }
+    },
+    {
+      "id": "5",
+      "name": "Post to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        200
+      ],
+      "parameters": {
+        "channel": "#coach-digest",
+        "text": "📚 Morning Digest:\\n{{ $json.title }}\\n{{ $json.summary }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Split RSS Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split RSS Items": {
+      "main": [
+        [
+          {
+            "node": "Summarize Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Content": {
+      "main": [
+        [
+          {
+            "node": "Post to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
