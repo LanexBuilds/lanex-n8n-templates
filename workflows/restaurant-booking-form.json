@@ -1,0 +1,136 @@
+{
+  "name": "Restaurant Booking Form",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Form Trigger",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "2",
+      "name": "Set - Preprocess Form",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        300,
+        100
+      ],
+      "parameters": {
+        "values": {}
+      }
+    },
+    {
+      "id": "3",
+      "name": "Google Sheets - Insert Booking",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [
+        500,
+        100
+      ],
+      "parameters": {
+        "resource": "spreadsheet",
+        "operation": "append",
+        "spreadsheetId": "",
+        "sheetName": "Bookings",
+        "columns": [
+          {
+            "column": 1,
+            "value": "={{$json[\"firstName\"]}}"
+          },
+          {
+            "column": 2,
+            "value": "={{$json[\"lastName\"]}}"
+          },
+          {
+            "column": 3,
+            "value": "={{$json[\"email\"]}}"
+          },
+          {
+            "column": 4,
+            "value": "={{$json[\"dateTime\"]}}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "4",
+      "name": "Email - Send Confirmation",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        700,
+        100
+      ],
+      "parameters": {
+        "fromEmail": "",
+        "toEmail": "={{$json[\"email\"]}}",
+        "subject": "Booking Confirmation",
+        "html": "<p>Thank you for your booking! We look forward to seeing you.</p>"
+      }
+    },
+    {
+      "id": "5",
+      "name": "NoOp - End",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        900,
+        100
+      ],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Form Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set - Preprocess Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Preprocess Form": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Insert Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Insert Booking": {
+      "main": [
+        [
+          {
+            "node": "Email - Send Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email - Send Confirmation": {
+      "main": [
+        [
+          {
+            "node": "NoOp - End",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
