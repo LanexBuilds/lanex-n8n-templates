@@ -1,0 +1,140 @@
+{
+  "name": "Recruitment Intent Router",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Chat Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat-message",
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "id": "2",
+      "name": "Detect Intent",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "{{$json[\"message\"]}}",
+              "operation": "exists"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "3",
+      "name": "Route to API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        750,
+        300
+      ],
+      "parameters": {
+        "url": "https://api.example.com/recruitment/intent",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "4",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ],
+      "parameters": {
+        "values": [
+          {
+            "name": "reply",
+            "value": "{{$json[\"response\"]}}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "5",
+      "name": "Reply to Chat",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        300
+      ],
+      "parameters": {
+        "responseCode": 200,
+        "responseHeaders": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "responseBody": "{\"reply\": \"{{$json[\"reply\"]}}\"}"
+      }
+    }
+  ],
+  "connections": {
+    "Chat Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Detect Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Intent": {
+      "main": [
+        [
+          {
+            "node": "Route to API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route to API": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Reply to Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
