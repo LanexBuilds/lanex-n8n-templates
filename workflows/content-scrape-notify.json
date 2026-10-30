@@ -1,0 +1,142 @@
+{
+  "name": "Content Scrape & Notify",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Cron Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "cronExpression": "0 */6 * * *"
+      }
+    },
+    {
+      "id": "2",
+      "name": "HTTP Request - Scrape Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "url": "https://example-news-site.com/latest",
+        "method": "GET",
+        "jsonParameters": true
+      }
+    },
+    {
+      "id": "3",
+      "name": "Set - Extract Items",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        750,
+        300
+      ],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": [
+          {
+            "name": "title",
+            "value": "{{$json[\"title\"]}}"
+          },
+          {
+            "name": "link",
+            "value": "{{$json[\"link\"]}}"
+          },
+          {
+            "name": "published",
+            "value": "{{$json[\"published\"]}}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "4",
+      "name": "IF - Check For Duplicates",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "{{$json[\"title\"]}}",
+              "operation": "equals",
+              "value2": "{{$json[\"lastTitle\"]}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "5",
+      "name": "Slack - Notify New Content",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        300
+      ],
+      "parameters": {
+        "channel": "#content-updates",
+        "text": "*New content detected!*\\nTitle: {{ $json.title }}\\nLink: {{ $json.link }}",
+        "iconEmoji": ":rocket:"
+      }
+    }
+  ],
+  "connections": {
+    "Cron Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Scrape Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Scrape Page": {
+      "main": [
+        [
+          {
+            "node": "Set - Extract Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Extract Items": {
+      "main": [
+        [
+          {
+            "node": "IF - Check For Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Check For Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Slack - Notify New Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
