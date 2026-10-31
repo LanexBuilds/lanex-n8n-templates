@@ -1,0 +1,153 @@
+{
+  "name": "Bookkeeper Email Intake & Classification",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Email Trigger IMAP",
+      "type": "n8n-nodes-base.imapTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "email": {
+          "host": "imap.gmail.com",
+          "port": 993,
+          "secure": true,
+          "username": "={{ $env.EMAIL_USER }}",
+          "password": "={{ $env.EMAIL_PASS }}",
+          "mailbox": "INBOX",
+          "searchCriteria": [
+            {
+              "property": "ALL",
+              "value": ""
+            }
+          ],
+          "markAsRead": true,
+          "markAsProcessed": true
+        }
+      }
+    },
+    {
+      "id": "2",
+      "name": "Extract Email Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "values": [
+          {
+            "name": "senderEmail",
+            "value": "={{ $json.from.email }}"
+          },
+          {
+            "name": "subject",
+            "value": "={{ $json.subject }}"
+          },
+          {
+            "name": "body",
+            "value": "={{ $json.body }}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "3",
+      "name": "Classify Priority",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        750,
+        300
+      ],
+      "parameters": {
+        "code": "const subject = $json.subject || '';\nconst body = $json.body || '';\nlet priority = 'Normal';\nconst lowerSubject = subject.toLowerCase();\nconst lowerBody = body.toLowerCase();\nif (lowerSubject.includes('urgent') || lowerSubject.includes('asap') || lowerBody.includes('urgent') || lowerBody.includes('asap')) {\n  priority = 'High';\n} else if (lowerSubject.includes('invoice') || lowerBody.includes('invoice')) {\n  priority = 'Medium';\n}\nreturn { priority };\n"
+      }
+    },
+    {
+      "id": "4",
+      "name": "Assign via API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ],
+      "parameters": {
+        "url": "https://api.example.com/assign",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": {
+          "senderEmail": "={{ $json.senderEmail }}",
+          "subject": "={{ $json.subject }}",
+          "priority": "={{ $json.priority }}"
+        }
+      }
+    },
+    {
+      "id": "5",
+      "name": "Send Acknowledgment",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        300
+      ],
+      "parameters": {
+        "channel": "#bookkeeper-alerts",
+        "text": "Email processed: *{{ $json.subject }}* from *{{ $json.senderEmail }}*. Priority set to *{{ $json.priority }}*."
+      }
+    }
+  ],
+  "connections": {
+    "Email Trigger IMAP": {
+      "main": [
+        [
+          {
+            "node": "Extract Email Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Email Fields": {
+      "main": [
+        [
+          {
+            "node": "Classify Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Priority": {
+      "main": [
+        [
+          {
+            "node": "Assign via API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign via API": {
+      "main": [
+        [
+          {
+            "node": "Send Acknowledgment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
