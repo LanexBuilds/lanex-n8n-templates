@@ -1,0 +1,144 @@
+{
+  "name": "Customer Support Ticket Webhook Retry",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Receive Support Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support/request"
+      }
+    },
+    {
+      "id": "2",
+      "name": "Call Ticket API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        300,
+        100
+      ],
+      "parameters": {
+        "url": "https://api.example.com/tickets",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "3",
+      "name": "Retry on Failure",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        500,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "{{$json[\"responseCode\"]}}",
+              "operation": "equal",
+              "value2": 200
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "4",
+      "name": "Fall Back to Queue",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        700,
+        100
+      ],
+      "parameters": {
+        "values": [
+          {
+            "name": "status",
+            "value": "queued_for_retry"
+          },
+          {
+            "name": "original_error",
+            "value": "{{$json[\"error\"]}}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "5",
+      "name": "Respond to Requester",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        900,
+        100
+      ],
+      "parameters": {
+        "responseCode": 200,
+        "responseHeaders": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "responseBody": "{\"status\":\"{{$json[\"status\"]}}\"}"
+      }
+    }
+  ],
+  "connections": {
+    "Receive Support Request": {
+      "main": [
+        [
+          {
+            "node": "Call Ticket API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Ticket API": {
+      "main": [
+        [
+          {
+            "node": "Retry on Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry on Failure": {
+      "main": [
+        [
+          {
+            "node": "Fall Back to Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fall Back to Queue": {
+      "main": [
+        [
+          {
+            "node": "Respond to Requester",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
